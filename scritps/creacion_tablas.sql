@@ -121,3 +121,7 @@ CREATE INDEX idx_ventas_asistente ON Ventas(id_asistente);
 CREATE INDEX idx_ventas_tipo_boleta ON Ventas(id_tipo_boleta);
 CREATE INDEX idx_ventas_fecha ON Ventas(fecha_venta);
 CREATE INDEX idx_staff_escenario ON Staff(id_escenario);
+
+ALTER TABLE Presentaciones 
+ADD CONSTRAINT uq_artista_fecha_hora 
+UNIQUE (id_artista, fecha, hora_inicio);
