@@ -1,20 +1,25 @@
 -- Script: triggers.sql
 
+DROP TRIGGER IF EXISTS trg_validar_aforo ON Ventas;
+DROP FUNCTION IF EXISTS fn_validar_aforo();
+
 CREATE OR REPLACE FUNCTION fn_validar_aforo()
 RETURNS TRIGGER AS $$
 DECLARE
     vendidas INTEGER;
     cupo_max INTEGER;
 BEGIN
+    
+    SELECT cupo_maximo
+    INTO cupo_max
+    FROM Tipos_Boleta
+    WHERE id_tipo = NEW.id_tipo_boleta
+    FOR UPDATE;
+
     SELECT COALESCE(SUM(cantidad), 0)
     INTO vendidas
     FROM Ventas
     WHERE id_tipo_boleta = NEW.id_tipo_boleta;
-
-    SELECT cupo_maximo
-    INTO cupo_max
-    FROM Tipos_Boleta
-    WHERE id_tipo = NEW.id_tipo_boleta;
 
     IF (vendidas + NEW.cantidad) > cupo_max THEN
         RAISE EXCEPTION 
