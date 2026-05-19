@@ -3,39 +3,43 @@
 -- CONSULTA 1
 
 SELECT 
-    a.nombre                    AS artista,
+    a.nombre AS artista,
     a.pais_origen,
     a.genero_musical,
-    COUNT(v.id_venta)           AS total_ventas,
-    SUM(v.cantidad)             AS boletas_vendidas,
-    SUM(v.total)                AS ingresos_generados
+    COUNT(DISTINCT v.id_venta) AS total_ventas,
+    SUM(v.cantidad) AS boletas_vendidas,
+    SUM(v.total) AS ingresos_generados
 FROM Artistas a
-JOIN Presentaciones p 
+JOIN Presentaciones p
     ON a.id_artista = p.id_artista
-JOIN Tipos_Boleta tb 
-    ON tb.id_tipo = tb.id_tipo
-JOIN Ventas v 
+JOIN Tipos_Boleta tb
+    ON tb.id_tipo = tb.id_tipo  
+JOIN Ventas v
     ON v.id_tipo_boleta = tb.id_tipo
-GROUP BY a.nombre, a.pais_origen, a.genero_musical
+    AND v.fecha_venta::TEXT LIKE '2026%'
+GROUP BY a.id_artista, a.nombre, a.pais_origen, a.genero_musical
 ORDER BY ingresos_generados DESC
 LIMIT 10;
 
 -- CONSULTA 2
 
-SELECT 
-    tb.nombre                               AS tipo_boleta,
-    tb.precio,
-    tb.cupo_maximo,
-    COALESCE(SUM(v.cantidad), 0)            AS boletas_vendidas,
-    tb.cupo_maximo - COALESCE(SUM(v.cantidad), 0) AS boletas_disponibles,
+SELECT
+    e.nombre AS escenario,
+    e.capacidad AS capacidad_total,
+    COUNT(p.id_presentacion) AS total_presentaciones,
+    SUM(v.cantidad) AS boletas_vendidas,
     ROUND(
-        (COALESCE(SUM(v.cantidad), 0) * 100.0) 
-        / tb.cupo_maximo, 2
-    )                                       AS porcentaje_ocupacion
-FROM Tipos_Boleta tb
-LEFT JOIN Ventas v 
-    ON tb.id_tipo = v.id_tipo_boleta
-GROUP BY tb.id_tipo, tb.nombre, tb.precio, tb.cupo_maximo
+        (SUM(v.cantidad) * 100.0) 
+        / e.capacidad, 2
+    ) AS porcentaje_ocupacion
+FROM Escenarios e
+JOIN Presentaciones p
+    ON e.id_escenario = p.id_escenario
+JOIN Tipos_Boleta tb
+    ON tb.id_tipo = tb.id_tipo
+LEFT JOIN Ventas v
+    ON v.id_tipo_boleta = tb.id_tipo
+GROUP BY e.id_escenario, e.nombre, e.capacidad
 ORDER BY porcentaje_ocupacion DESC;
 
 -- CONSULTA 3
