@@ -1,92 +1,96 @@
 use("soundwave_mongodb");
 
-// ======================================================
 // CONSULTA 1
-// SETLISTS POR ARTISTA
-// ======================================================
 
-print("\n===== CONSULTA 1: SETLISTS POR ARTISTA =====\n");
+print("\n===== CONSULTA 1: SETLISTS ORDENADOS POR DURACION =====\n");
 
 db.setlists.find(
+  {},
   {
-    id_artista: 5
+    id_artista: 1,
+    escenario: 1,
+    fecha_presentacion: 1,
+    duracion_total_min: 1,
+    "canciones": { $slice: 1 }
   }
-).pretty();
+).sort({ duracion_total_min: -1 });
 
-// ======================================================
 // CONSULTA 2
-// INCIDENTES DE GRAVEDAD ALTA O CRÍTICA
-// ======================================================
 
-print("\n===== CONSULTA 2: INCIDENTES GRAVES =====\n");
+print("\n===== CONSULTA 2: INCIDENTES GRAVES CON PERSONAS AFECTADAS =====\n");
 
-db.reportes_incidentes.find(
-  {
-    gravedad: {
-      $in: ["Alta", "Crítica"]
-    }
-  }
-).pretty();
+db.reportes_incidentes.find({
+  $and: [
+    { gravedad: { $in: ["Alta", "Critica"] } },
+    { personas_afectadas: { $gte: 1 } },
+    { "detalle.estado": "Resuelto" }
+  ]
+},
+{
+  id_escenario: 1,
+  tipo_incidente: 1,
+  gravedad: 1,
+  personas_afectadas: 1,
+  "detalle.descripcion": 1,
+  "detalle.accion_tomada": 1
+}).sort({ personas_afectadas: -1 });
 
-// ======================================================
 // CONSULTA 3
-// AGGREGATION PIPELINE
-// PROMEDIO DE CALIFICACIONES POR PRESENTACIÓN
-// ======================================================
 
-print("\n===== CONSULTA 3: PROMEDIO DE RESEÑAS =====\n");
+print("\n===== CONSULTA 3: REPORTE DE CALIDAD POR ESCENARIO =====\n");
 
 db.resenas_publico.aggregate([
-
+  {
+    $lookup: {
+      from: "setlists",
+      localField: "id_presentacion",
+      foreignField: "id_presentacion",
+      as: "info_presentacion"
+    }
+  },
+  {
+    $unwind: "$info_presentacion"
+  },
   {
     $group: {
-
-      _id: "$id_presentacion",
-
-      promedio_calificacion: {
-        $avg: "$calificacion"
+      _id: "$info_presentacion.escenario",
+      promedio_calificacion: { $avg: "$calificacion" },
+      total_resenas: { $sum: 1 },
+      resenas_positivas: {
+        $sum: {
+          $cond: [{ $gte: ["$calificacion", 4] }, 1, 0]
+        }
       },
-
-      total_resenas: {
-        $sum: 1
-      }
-
+      calificacion_maxima: { $max: "$calificacion" },
+      calificacion_minima: { $min: "$calificacion" }
     }
   },
-
   {
-    $sort: {
-      promedio_calificacion: -1
-    }
-  }
-
-]);
-
-// ======================================================
-// CONSULTA EXTRA
-// ARTISTAS CON MÁS INCIDENTES REPORTADOS
-// ======================================================
-
-print("\n===== CONSULTA EXTRA: INCIDENTES POR ESCENARIO =====\n");
-
-db.reportes_incidentes.aggregate([
-
-  {
-    $group: {
-
-      _id: "$id_escenario",
-
-      total_incidentes: {
-        $sum: 1
+    $addFields: {
+      porcentaje_satisfaccion: {
+        $round: [
+          { $multiply: [
+            { $divide: ["$resenas_positivas", "$total_resenas"] },
+            100
+          ]},
+          1
+        ]
       }
-
     }
   },
-
   {
-    $sort: {
-      total_incidentes: -1
+    $sort: { promedio_calificacion: -1 }
+  },
+  {
+    $project: {
+      escenario: "$_id",
+      promedio_calificacion: { $round: ["$promedio_calificacion", 2] },
+      total_resenas: 1,
+      resenas_positivas: 1,
+      porcentaje_satisfaccion: 1,
+      calificacion_maxima: 1,
+      calificacion_minima: 1,
+      _id: 0
     }
   }
-
 ]);
