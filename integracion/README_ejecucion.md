@@ -83,3 +83,37 @@ No es necesario modificar nada para ejecutar el script.
 ---
 
 ## Arquitectura de la integración
+
+script_integracion.py
+│
+├── conectar_postgres()     → Conexión a Neon (PostgreSQL)
+├── conectar_mongo()        → Conexión a Atlas (MongoDB)
+│
+├── Caso 1: Reporte de Artista
+│   ├── obtener_artistas()              → PostgreSQL
+│   ├── obtener_setlist(id_artista)     → MongoDB
+│   └── Vista combinada en la GUI
+│
+└── Caso 2: Panel de Incidentes
+├── obtener_escenarios()                    → PostgreSQL
+├── obtener_presentaciones_escenario()      → PostgreSQL
+├── obtener_incidentes_escenario()          → MongoDB
+├── obtener_resenas_escenario()             → MongoDB
+└── Vista combinada en la GUI
+
+---
+
+## Tecnologías utilizadas
+
+| Tecnología | Uso |
+|---|---|
+| Python 3 | Lenguaje del script |
+| Tkinter | Interfaz gráfica |
+| psycopg2 | Conector PostgreSQL |
+| pymongo | Conector MongoDB |
+| Neon | PostgreSQL en la nube |
+| MongoDB Atlas | MongoDB en la nube |
+
+---
+
+*Festival 8 — Bases de Datos 2 — Universidad El Bosque — 2026*
